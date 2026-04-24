@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>BFHL Solver</title>
+</head>
 <body>
 
 <h2>BFHL Solver</h2>
 
-<textarea id="input" rows="5" cols="50">
-A->B, A->C, B->D
-</textarea><br><br>
+<textarea id="input" rows="6" cols="50">A->B, A->C, B->D</textarea><br><br>
 
-<button onclick="send()">Submit</button>
+<button onclick="handleSubmit()">Submit</button>
 
 <pre id="output"></pre>
 
 <script>
-    async function send() {
+    async function handleSubmit() {
         const raw = document.getElementById("input").value;
-        const data = raw.split(",").map(x => x.trim());
+        const arr = raw.split(",").map(x => x.trim()).filter(x => x.length);
 
-        const res = await fetch("http://localhost:3000/bfhl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data })
-        });
+        try {
+            const res = await fetch("http://localhost:3000/bfhl", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data: arr })
+            });
 
-        const json = await res.json();
-        document.getElementById("output").innerText =
-            JSON.stringify(json, null, 2);
+            const data = await res.json();
+            document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+        } catch (err) {
+            document.getElementById("output").innerText = "Something went wrong";
+        }
     }
 </script>
 

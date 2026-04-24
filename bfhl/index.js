@@ -6,32 +6,32 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/bfhl", (req, res) => {
-    const data = req.body.data || [];
+    const input = req.body.data || [];
 
     const invalid = [];
     const duplicates = [];
     const seen = new Set();
-    const graph = {};
-    const parentMap = {};
-    const nodes = new Set();
 
-    // Step 1: Validate + duplicates
-    data.forEach((edge) => {
-        if (!edge || typeof edge !== "string") {
-            invalid.push(edge);
+    const adjacencyList = {};
+    const parentOf = {};
+    const allNodes = new Set();
+
+    input.forEach((item) => {
+        if (!item || typeof item !== "string") {
+            invalid.push(item);
             return;
         }
 
-        edge = edge.trim();
+        const edge = item.trim();
 
         if (!/^[A-Z]->[A-Z]$/.test(edge)) {
             invalid.push(edge);
             return;
         }
 
-        const [p, c] = edge.split("->");
+        const [parent, child] = edge.split("->");
 
-        if (p === c) {
+        if (parent === child) {
             invalid.push(edge);
             return;
         }
@@ -43,84 +43,81 @@ app.post("/bfhl", (req, res) => {
 
         seen.add(edge);
 
-        // multi-parent check
-        if (parentMap[c]) return;
+        if (parentOf[child]) return;
 
-        parentMap[c] = p;
+        parentOf[child] = parent;
 
-        if (!graph[p]) graph[p] = [];
-        graph[p].push(c);
+        if (!adjacencyList[parent]) adjacencyList[parent] = [];
+        adjacencyList[parent].push(child);
 
-        nodes.add(p);
-        nodes.add(c);
+        allNodes.add(parent);
+        allNodes.add(child);
     });
 
-    // Step 2: find roots
-    const roots = [...nodes].filter(n => !parentMap[n]);
+    const roots = [...allNodes].filter(n => !parentOf[n]);
 
-    const visitedGlobal = new Set();
-    const hierarchies = [];
+    const visited = new Set();
+    const result = [];
 
-    let totalTrees = 0;
-    let totalCycles = 0;
-    let maxDepth = 0;
-    let largestRoot = "";
+    let treeCount = 0;
+    let cycleCount = 0;
+    let bestDepth = 0;
+    let bestRoot = "";
 
-    function dfs(node, visited, path) {
-        if (path.has(node)) return "cycle";
+    function explore(node, stack) {
+        if (stack.has(node)) return "cycle";
 
-        path.add(node);
+        stack.add(node);
 
-        let tree = {};
+        let structure = {};
         let depth = 1;
 
-        if (graph[node]) {
-            tree[node] = {};
-            for (let child of graph[node]) {
-                const res = dfs(child, visited, path);
-                if (res === "cycle") return "cycle";
+        if (adjacencyList[node]) {
+            structure[node] = {};
+            for (let next of adjacencyList[node]) {
+                const check = explore(next, stack);
+                if (check === "cycle") return "cycle";
 
-                tree[node][child] = res.tree[child] || {};
-                depth = Math.max(depth, 1 + res.depth);
+                structure[node][next] = check.tree[next] || {};
+                depth = Math.max(depth, 1 + check.depth);
             }
         } else {
-            tree[node] = {};
+            structure[node] = {};
         }
 
-        path.delete(node);
+        stack.delete(node);
         visited.add(node);
 
-        return { tree, depth };
+        return { tree: structure, depth };
     }
 
-    // Step 3: process each root
     roots.forEach(root => {
-        if (visitedGlobal.has(root)) return;
+        if (visited.has(root)) return;
 
-        const result = dfs(root, visitedGlobal, new Set());
+        const output = explore(root, new Set());
 
-        if (result === "cycle") {
-            totalCycles++;
-            hierarchies.push({
+        if (output === "cycle") {
+            cycleCount++;
+            result.push({
                 root,
                 tree: {},
                 has_cycle: true
             });
         } else {
-            totalTrees++;
+            treeCount++;
 
             if (
-                result.depth > maxDepth ||
-                (result.depth === maxDepth && root < largestRoot)
+                output.depth > bestDepth ||
+                (output.depth === bestDepth && root < bestRoot)
             ) {
-                maxDepth = result.depth;
-                largestRoot = root;
+                bestDepth = output.depth;
+                bestRoot = root;
             }
 
-            hierarchies.push({
+            result.push({
                 root,
-                tree: result.tree,
-                depth: result.depth
+                tree: output.tree,
+                depth: output.depth
             });
         }
     });
@@ -129,15 +126,15 @@ app.post("/bfhl", (req, res) => {
         user_id: "sushil_27052004",
         email_id: "sk7493@srmist.edu.in",
         college_roll_number: "RA2311003010393",
-        hierarchies,
+        hierarchies: result,
         invalid_entries: invalid,
         duplicate_edges: duplicates,
         summary: {
-            total_trees: totalTrees,
-            total_cycles: totalCycles,
-            largest_tree_root: largestRoot
+            total_trees: treeCount,
+            total_cycles: cycleCount,
+            largest_tree_root: bestRoot
         }
     });
 });
 
-app.listen(3000, () => console.log("Server running"));
+app.listen(3000);
