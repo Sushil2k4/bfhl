@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Bajaj-Exam.iml" filepath="$PROJECT_DIR$/.idea/Bajaj-Exam.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/bfhl.iml" filepath="$PROJECT_DIR$/.idea/bfhl.iml" />
     </modules>
   </component>
 </project>
