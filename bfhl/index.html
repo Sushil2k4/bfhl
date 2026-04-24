@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>BFHL Solver</h2>
+
+<textarea id="input" rows="5" cols="50">
+A->B, A->C, B->D
+</textarea><br><br>
+
+<button onclick="send()">Submit</button>
+
+<pre id="output"></pre>
+
+<script>
+    async function send() {
+        const raw = document.getElementById("input").value;
+        const data = raw.split(",").map(x => x.trim());
+
+        const res = await fetch("http://localhost:3000/bfhl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data })
+        });
+
+        const json = await res.json();
+        document.getElementById("output").innerText =
+            JSON.stringify(json, null, 2);
+    }
+</script>
+
+</body>
+</html>
